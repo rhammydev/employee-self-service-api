@@ -8,11 +8,38 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.18"/>
+        <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+        <PackageReference Include="FluentValidation" Version="12.1.1" />
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+        <PackageReference Include="MailKit" Version="4.18.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.18" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.18" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.18" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.18">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.18" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.18">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="MimeKit" Version="4.18.1" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
     </ItemGroup>
 
     <ItemGroup>
       <Folder Include="Controllers\" />
+      <Folder Include="Data\" />
+      <Folder Include="Domain\Entities\Common\" />
+      <Folder Include="Domain\Entities\Learning\" />
+      <Folder Include="Domain\Entities\Opportunities\" />
+      <Folder Include="Domain\Entities\Payroll\" />
+      <Folder Include="Domain\Entities\Performance\" />
+      <Folder Include="Domain\Entities\Training\" />
+      <Folder Include="Domain\Settings\" />
+      <Folder Include="DTOs\" />
     </ItemGroup>
 
 </Project>
