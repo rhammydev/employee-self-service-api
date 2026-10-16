@@ -36,7 +36,6 @@
       <Folder Include="Domain\Entities\Opportunities\" />
       <Folder Include="Domain\Entities\Payroll\" />
       <Folder Include="Domain\Entities\Performance\" />
-      <Folder Include="Domain\Entities\Training\" />
       <Folder Include="Domain\Settings\" />
       <Folder Include="DTOs\" />
     </ItemGroup>
