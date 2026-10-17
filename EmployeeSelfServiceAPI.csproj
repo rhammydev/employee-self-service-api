@@ -32,7 +32,6 @@
     <ItemGroup>
       <Folder Include="Controllers\" />
       <Folder Include="Data\" />
-      <Folder Include="Domain\Entities\Learning\" />
       <Folder Include="Domain\Entities\Opportunities\" />
       <Folder Include="Domain\Entities\Payroll\" />
       <Folder Include="Domain\Entities\Performance\" />
