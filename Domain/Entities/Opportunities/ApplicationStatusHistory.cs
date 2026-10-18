@@ -7,6 +7,7 @@ public class ApplicationStatusHistory
 {
     public int Id { get; set; }
     public int OpportunityApplicationId { get; set; }
+    public OpportunityApplication? OpportunityApplication { get; set; }
     public ApplicationStatus? FromStatus { get; set; }
     public ApplicationStatus ToStatus { get; set; }
     public int ActorId { get; set; } 
