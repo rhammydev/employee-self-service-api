@@ -1,6 +1,8 @@
 namespace EmployeeSelfServiceAPI.Domain.Enums;
 
-public class PayslipVersionStatus
+public enum PayslipVersionStatus
 {
-    
+    Draft,
+    Published,
+    Superseded
 }

@@ -33,7 +33,6 @@
       <Folder Include="Controllers\" />
       <Folder Include="Data\" />
       <Folder Include="Domain\Entities\Opportunities\" />
-      <Folder Include="Domain\Entities\Payroll\" />
       <Folder Include="Domain\Settings\" />
       <Folder Include="DTOs\" />
     </ItemGroup>
