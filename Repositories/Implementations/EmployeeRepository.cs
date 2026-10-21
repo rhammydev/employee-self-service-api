@@ -25,4 +25,12 @@ public class EmployeeRepository(AppDbContext context) : IEmployeeRepository
 
         return employee?.Roles;
     }
+    
+    public Task<Employee?> GetByEmailWithRolesAsync(string email) =>
+        context.Employees.Include(e => e.Roles)
+            .FirstOrDefaultAsync(e => e.Email == email);
+
+    public Task<Employee?> GetByIdWithRolesAsync(int id) =>
+        context.Employees.Include(e => e.Roles)
+            .FirstOrDefaultAsync(e => e.Id == id);
 }

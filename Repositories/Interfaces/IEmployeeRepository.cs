@@ -7,4 +7,6 @@ public interface IEmployeeRepository
 {
     Task<Employee?> GetByIdAsync(int id);
     Task<List<UserRole>?> GetActiveRolesAsync(int id);
+    Task<Employee?> GetByEmailWithRolesAsync(string email);
+    Task<Employee?> GetByIdWithRolesAsync(int id);
 }
