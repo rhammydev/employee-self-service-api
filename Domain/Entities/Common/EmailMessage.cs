@@ -1,3 +1,4 @@
+using EmployeeSelfServiceAPI.Domain.Entities.Identity;
 using EmployeeSelfServiceAPI.Domain.Enums;
 
 namespace EmployeeSelfServiceAPI.Domain.Entities.Common;
@@ -6,6 +7,7 @@ public class EmailMessage
 {
     public int Id { get; set; }
     public int? EmployeeId { get; set; }
+    public Employee? Employee { get; set; }
     public string Recipient { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
     public string Body { get; set; } = string.Empty;

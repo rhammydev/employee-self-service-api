@@ -161,6 +161,8 @@ namespace EmployeeSelfServiceAPI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EmployeeId");
+
                     b.HasIndex("Status", "NextAttemptAt");
 
                     b.ToTable("EmailMessages");
@@ -1631,6 +1633,16 @@ namespace EmployeeSelfServiceAPI.Migrations
                 });
 
             modelBuilder.Entity("EmployeeSelfServiceAPI.Domain.Entities.Common.AuditLog", b =>
+                {
+                    b.HasOne("EmployeeSelfServiceAPI.Domain.Entities.Identity.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("EmployeeSelfServiceAPI.Domain.Entities.Common.EmailMessage", b =>
                 {
                     b.HasOne("EmployeeSelfServiceAPI.Domain.Entities.Identity.Employee", "Employee")
                         .WithMany()
