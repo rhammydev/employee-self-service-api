@@ -14,6 +14,7 @@ public static class RepositoryExtensions
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IEmailQueueRepository, EmailQueueRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<IOrganizationRepository, OrganizationRepository>();
 
         return services;
     }
