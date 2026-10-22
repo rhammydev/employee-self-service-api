@@ -1,6 +1,6 @@
 namespace EmployeeSelfServiceAPI.DTOs.Generic;
 
-public class ResponseCodes
+public static class ResponseCodes
 {
     public const string Success = "00";
     public const string NotFound = "40";

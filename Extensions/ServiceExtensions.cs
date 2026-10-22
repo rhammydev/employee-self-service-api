@@ -13,6 +13,7 @@ public static class ServiceExtensions
 
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IEmployeeService, EmployeeService>();
         
         return services;
     }

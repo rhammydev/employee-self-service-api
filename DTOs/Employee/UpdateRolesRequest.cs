@@ -4,5 +4,5 @@ namespace EmployeeSelfServiceAPI.DTOs.Employee;
 
 public class UpdateRolesRequest
 {
-    public List<UserRole> Roles { get; set; }
+    public List<UserRole> Roles { get; set; } = [];
 }
