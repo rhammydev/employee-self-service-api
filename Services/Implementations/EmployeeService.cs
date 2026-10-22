@@ -114,37 +114,117 @@ public class EmployeeService(
 
     public async Task<ApiResponse> UpdateEmploymentAsync(int actorId, int employeeId, UpdateEmploymentRequest request)
     {
-        throw new NotImplementedException();
+        var employee = await employeeRepository.GetByIdAsync(employeeId);
+        if (employee == null)
+            return ApiResponse.NotFound("Employee not found.");
+        
+        var orgError = await ValidateDepartmentAndGradeAsync(request.DepartmentId, request.GradeId);
+        if (orgError != null) return orgError;
+
+        if (request.ReportingManagerId.HasValue)
+        {
+            var managerId = request.ReportingManagerId.Value;
+
+            if (managerId == employeeId) 
+                return ApiResponse.Fail("An employee cannot report to themselves", 400);
+
+            var managerError = await ValidateManagerAsync(managerId);
+            if (managerError != null) return managerError;
+
+            if (await CreatesCycleAsync(employeeId, managerId))
+                return ApiResponse.Fail("This change would create a reporting cycle.", 400);
+        }
+        
+        employee.DepartmentId = request.DepartmentId;
+        employee.GradeId = request.GradeId;
+        employee.ReportingManagerId = request.ReportingManagerId;
+        employee.UpdatedAt = DateTime.UtcNow;
+        
+        await AuditAsync(actorId, "EmploymentUpdated", employeeId, 
+            $"Dept={request.DepartmentId}, Grade={request.GradeId}, Manager={request.ReportingManagerId}");
+        await unitOfWork.SaveChangesAsync();
+        
+        var result = await employeeRepository.GetDetailsAsync(employeeId);
+        return ApiResponse.Success("Emplyment details updated.", ToProfile(result!));
     }
 
     public async Task<ApiResponse> UpdateStatusAsync(int actorId, int employeeId, UpdateStatusRequest request)
     {
-        throw new NotImplementedException();
+        var employee = await employeeRepository.GetByIdAsync(employeeId);
+        if (employee == null)
+            return ApiResponse.NotFound("Employee not found.");
+
+        if (employee.IsActive == request.IsActive)
+            return ApiResponse.Conflict(request.IsActive
+                ? "Employee is already active"
+                : "Employee is already inactive.");
+
+        if (request.IsActive)
+        {
+            if (employee.PasswordHash == null)
+                return ApiResponse.Conflict("This employee has not completed setup. Resend the setup link instead.");
+
+            employee.FailedLoginCount = 0;
+            employee.FirstFailedLoginAt = null;
+            employee.LockoutEndAt = null;
+        }
+        else
+        {
+            if (employeeId == actorId)
+                return ApiResponse.Fail("You cannot deactivate your own account.", 400);
+
+            await accountTokenRepository.InvalidateActiveAsync(employeeId, TokenPurpose.AccountSetup);
+            await accountTokenRepository.InvalidateActiveAsync(employeeId, TokenPurpose.PasswordReset);
+        }
+
+        employee.IsActive = request.IsActive;
+        employee.UpdatedAt = DateTime.UtcNow;
+        await AuditAsync(actorId, request.IsActive ? "EmployeeActivated" : "EmployeeDeactivated", employeeId, request.Reason);
+        await unitOfWork.SaveChangesAsync();
+
+        return ApiResponse.Success(request.IsActive ? "Employee activated." : "Employee deactivated.");
     }
 
     public async Task<ApiResponse> GetAllAsync(EmployeeQuery query)
     {
-        throw new NotImplementedException();
+        var page = await employeeRepository.GetPagedAsync(query);
+        return ApiResponse.Paged("Employees retrieved,", Map(page));
     }
 
     public async Task<ApiResponse> GetByIdAsync(int employeeId)
     {
-        throw new NotImplementedException();
+        var employee = await employeeRepository.GetDetailsAsync(employeeId);
+        return employee == null
+            ? ApiResponse.NotFound("Employee not found.")
+            : ApiResponse.Success("Employee retrieved.", ToProfile(employee));
     }
 
     public async Task<ApiResponse> GetMyProfileAsync(int employeeId)
     {
-        throw new NotImplementedException();
+        var employee = await employeeRepository.GetDetailsAsync(employeeId);
+        return employee == null
+            ? ApiResponse.NotFound("Employee not found.")
+            : ApiResponse.Success("Profile retrieved.", ToProfile(employee));
     }
 
     public async Task<ApiResponse> UpdateMyPhoneAsync(int employeeId, UpdatePhoneRequest request)
     {
-        throw new NotImplementedException();
+        var employee = await employeeRepository.GetByIdAsync(employeeId);
+        if (employee == null)
+            return ApiResponse.NotFound("Employee not found.");
+
+        employee.PhoneNumber = request.PhoneNumber.Trim();
+        employee.UpdatedAt = DateTime.UtcNow;
+        await AuditAsync(employeeId, "PhoneUpdated", employeeId);
+        await unitOfWork.SaveChangesAsync();
+
+        return ApiResponse.Success("Phone number updated.");
     }
 
     public async Task<ApiResponse> GetMyTeamAsync(int managerId, PagedRequest request)
     {
-        throw new NotImplementedException();
+        var page = await employeeRepository.GetDirectReportsPagedAsync(managerId, request);
+        return ApiResponse.Paged("Team retrieved.", Map(page));
     }
     
     private async Task<ApiResponse?> ValidateDepartmentAndGradeAsync(int departmentId, int gradeId)
