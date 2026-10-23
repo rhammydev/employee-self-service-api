@@ -14,6 +14,8 @@ public static class RepositoryExtensions
         services.AddScoped<IEmailQueueRepository, EmailQueueRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+        services.AddScoped<IAttachmentRepository, AttachmentRepository>();
+        services.AddScoped<ITrainingRequestRepository, TrainingRequestRepository>();
 
         return services;
     }

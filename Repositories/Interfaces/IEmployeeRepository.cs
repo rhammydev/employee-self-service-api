@@ -19,5 +19,6 @@ public interface IEmployeeRepository
     Task<PagedResult<Employee>> GetPagedAsync(EmployeeQuery query);
     Task<PagedResult<Employee>> GetDirectReportsPagedAsync(int managerId, PagedRequest request);
     Task AddAsync(Employee employee);
+    Task<List<Employee>> GetActiveByRoleAsync(UserRole role);
     void RemoveRole(EmployeeRole role);
 }

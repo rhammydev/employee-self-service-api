@@ -1,0 +1,6 @@
+namespace EmployeeSelfServiceAPI.DTOs.Generic;
+
+public class ReasonRequest
+{
+    public string Reason { get; set; } = string.Empty;
+}
