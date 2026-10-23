@@ -1,4 +1,5 @@
 using EmployeeSelfServiceAPI.Domain.Settings;
+using EmployeeSelfServiceAPI.Helpers;
 using EmployeeSelfServiceAPI.Services.Implementations;
 using EmployeeSelfServiceAPI.Services.Interfaces;
 
@@ -14,6 +15,13 @@ public static class ServiceExtensions
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IEmployeeService, EmployeeService>();
+        
+        services.Configure<FileStorageSettings>(configuration.GetSection("FileStorage"));
+
+        services.AddSingleton<IAppClock, AppClock>();
+        services.AddScoped<IFileStorageService, FileStorageService>();
+        services.AddScoped<IAttachmentService, AttachmentService>();
+        services.AddScoped<ITrainingRequestService, TrainingRequestService>();
         
         return services;
     }
