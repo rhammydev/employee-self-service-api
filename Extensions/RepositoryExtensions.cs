@@ -16,6 +16,7 @@ public static class RepositoryExtensions
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
         services.AddScoped<ITrainingRequestRepository, TrainingRequestRepository>();
+        services.AddScoped<IEstacodeRateRepository, EstacodeRateRepository>();
 
         return services;
     }

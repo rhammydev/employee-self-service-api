@@ -29,4 +29,5 @@ public class TrainingRequestDetailResponse
     public DateTime CreatedAt { get; set; }
     public List<AttachmentResponse> Attachments { get; set; } = [];
     public List<TrainingHistoryResponse> History { get; set; } = [];
+    public List<AllowanceResponse> Allowances { get; set; } = [];
 }

@@ -22,6 +22,8 @@ public static class ServiceExtensions
         services.AddScoped<IFileStorageService, FileStorageService>();
         services.AddScoped<IAttachmentService, AttachmentService>();
         services.AddScoped<ITrainingRequestService, TrainingRequestService>();
+        services.AddScoped<ITrainingApprovalService, TrainingApprovalService>();
+        services.AddSingleton<IPdfService, PdfService>();
         
         return services;
     }

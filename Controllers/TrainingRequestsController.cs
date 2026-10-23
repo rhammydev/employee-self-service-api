@@ -11,7 +11,9 @@ namespace EmployeeSelfServiceAPI.Controllers;
 [ApiController]
 [Route("api/v1/training-requests")]
 [Authorize]
-public class TrainingRequestsController(ITrainingRequestService training) : ControllerBase
+public class TrainingRequestsController(
+    ITrainingRequestService training,
+    ITrainingApprovalService approvals) : ControllerBase
 {
     private ObjectResult Respond(ApiResponse response) => StatusCode(response.HttpStatusCode, response);
 
@@ -66,4 +68,42 @@ public class TrainingRequestsController(ITrainingRequestService training) : Cont
     [HttpPost("{id:int}/reassign-reviewer")]
     public async Task<IActionResult> ReassignReviewer(int id, ReassignReviewerRequest request) =>
         Respond(await training.ReassignReviewerAsync(User.GetEmployeeId(), id, request));
+
+    // HR
+    [Authorize(Roles = nameof(UserRole.HR))]
+    [HttpGet("pending-hr")]
+    public async Task<IActionResult> GetPendingHr([FromQuery] PagedRequest request) =>
+        Respond(await approvals.GetPendingHrAsync(request));
+
+    [Authorize(Roles = nameof(UserRole.HR))]
+    [HttpPost("{id:int}/hr-approve")]
+    public async Task<IActionResult> HrApprove(int id) =>
+        Respond(await approvals.HrApproveAsync(User.GetEmployeeId(), id));
+
+    [Authorize(Roles = nameof(UserRole.HR))]
+    [HttpPost("{id:int}/allowance-corrections")]
+    public async Task<IActionResult> CorrectAllowance(int id, AllowanceCorrectionRequest request) =>
+        Respond(await approvals.CorrectAllowanceAsync(User.GetEmployeeId(), id, request));
+
+    // Finance 
+    [Authorize(Roles = nameof(UserRole.Finance))]
+    [HttpGet("pending-finance")]
+    public async Task<IActionResult> GetPendingFinance([FromQuery] PagedRequest request) =>
+        Respond(await approvals.GetPendingFinanceAsync(request));
+
+    [Authorize(Roles = nameof(UserRole.Finance))]
+    [HttpPost("{id:int}/finance-decision")]
+    public async Task<IActionResult> FinanceDecision(int id, FinanceDecisionRequest request) =>
+        Respond(await approvals.FinanceDecisionAsync(User.GetEmployeeId(), id, request));
+
+    // Anyone who can view the request, once Finance has approved
+    [HttpGet("{id:int}/allowance-pdf")]
+    public async Task<IActionResult> DownloadAllowancePdf(int id)
+    {
+        var (error, file) = await approvals.GetAllowancePdfAsync(User.GetEmployeeId(), User.GetRoles(), id);
+        if (error != null)
+            return Respond(error);
+
+        return File(file!.Content, file.ContentType, file.FileName);
+    }
 }

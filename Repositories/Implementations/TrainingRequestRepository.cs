@@ -17,7 +17,9 @@ public class TrainingRequestRepository(AppDbContext context): ITrainingRequestRe
     public Task<TrainingRequest?> GetForUpdateAsync(int id) =>
         context.TrainingRequests
             .Include(t => t.Employee).ThenInclude(e => e!.ReportingManager)
+            .Include(t => t.Employee).ThenInclude(e => e!.Grade)
             .Include(t => t.AssignedReviewer)
+            .Include(t => t.Allowances)
             .FirstOrDefaultAsync(t => t.Id == id);
 
     public Task<TrainingRequest?> GetDetailsAsync(int id) =>
@@ -27,7 +29,8 @@ public class TrainingRequestRepository(AppDbContext context): ITrainingRequestRe
             .Include(t => t.Employee)
             .Include(t => t.AssignedReviewer)
             .Include(t => t.StatusHistory).ThenInclude(h => h.Actor)
-            .Include(t => t.Allowances)
+            .Include(t => t.Allowances).ThenInclude(a => a.CreatedBy)
+            .Include(t => t.Allowances).ThenInclude(a => a.ApprovedBy)
             .FirstOrDefaultAsync(t => t.Id == id);
 
     public Task<PagedResult<TrainingRequest>> GetPagedForEmployeeAsync(int employeeId, TrainingRequestQuery query)
@@ -46,7 +49,13 @@ public class TrainingRequestRepository(AppDbContext context): ITrainingRequestRe
                         && (reviewerId == null || t.AssignedReviewerId == reviewerId))
             .OrderBy(t => t.SubmittedAt)
             .ToPagedResultAsync(request);
-    
+
+    public Task<PagedResult<TrainingRequest>> GetPagedByStatusesAsync(IReadOnlyCollection<TrainingStatus> statuses, PagedRequest request) =>
+        WithPeople()
+            .Where(t => statuses.Contains(t.Status))
+            .OrderBy(t => t.UpdatedAt)
+            .ToPagedResultAsync(request);
+
     private IQueryable<TrainingRequest> WithPeople() =>
         context.TrainingRequests.AsNoTracking()
             .Include(t => t.Employee)

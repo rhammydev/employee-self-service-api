@@ -1,4 +1,5 @@
 using EmployeeSelfServiceAPI.Domain.Entities.Training;
+using EmployeeSelfServiceAPI.Domain.Enums;
 using EmployeeSelfServiceAPI.DTOs.Generic;
 using EmployeeSelfServiceAPI.DTOs.Training;
 
@@ -15,4 +16,6 @@ public interface ITrainingRequestRepository
     Task<PagedResult<TrainingRequest>> GetPagedForEmployeeAsync(int employeeId, TrainingRequestQuery query);
 
     Task<PagedResult<TrainingRequest>> GetPagedPendingManagerAsync(int? reviewerId, PagedRequest request);
+
+    Task<PagedResult<TrainingRequest>> GetPagedByStatusesAsync(IReadOnlyCollection<TrainingStatus> statuses, PagedRequest request);
 }

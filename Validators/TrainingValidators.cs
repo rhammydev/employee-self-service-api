@@ -1,3 +1,4 @@
+using EmployeeSelfServiceAPI.Domain.Enums;
 using EmployeeSelfServiceAPI.DTOs.Generic;
 using EmployeeSelfServiceAPI.DTOs.Training;
 using FluentValidation;
@@ -55,5 +56,33 @@ public class ReasonRequestValidator : AbstractValidator<ReasonRequest>
     public ReasonRequestValidator()
     {
         RuleFor(x => x.Reason).NotEmpty().WithMessage("A reason is required.").MaximumLength(1000);
+    }
+}
+
+public class FinanceDecisionRequestValidator : AbstractValidator<FinanceDecisionRequest>
+{
+    public FinanceDecisionRequestValidator()
+    {
+        RuleFor(x => x.Decision).IsInEnum().WithMessage("Decision must be Approve, Reject or ReturnToHR.");
+        RuleFor(x => x.AllowanceVersion).GreaterThan(0).WithMessage("The allowance version you reviewed is required.");
+        RuleFor(x => x.Reason).NotEmpty().When(x => x.Decision != FinanceDecision.Approve)
+            .WithMessage("A reason is required when rejecting or returning to HR.");
+        RuleFor(x => x.Reason).MaximumLength(1000);
+    }
+}
+
+public class AllowanceCorrectionRequestValidator : AbstractValidator<AllowanceCorrectionRequest>
+{
+    public AllowanceCorrectionRequestValidator()
+    {
+        RuleFor(x => x)
+            .Must(x => x.DailyRate.HasValue || x.EligibleDays.HasValue)
+            .WithName("correction")
+            .WithMessage("Provide a new daily rate, new eligible days, or both.");
+        RuleFor(x => x.DailyRate).GreaterThan(0).When(x => x.DailyRate.HasValue)
+            .WithMessage("Daily rate must be greater than zero.");
+        RuleFor(x => x.EligibleDays).GreaterThanOrEqualTo(0).When(x => x.EligibleDays.HasValue)
+            .WithMessage("Eligible days cannot be negative.");
+        RuleFor(x => x.Reason).NotEmpty().WithMessage("A reason is required for a correction.").MaximumLength(1000);
     }
 }
