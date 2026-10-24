@@ -1,5 +1,7 @@
 using System.Globalization;
+using EmployeeSelfServiceAPI.Domain.Entities.Payroll;
 using EmployeeSelfServiceAPI.Domain.Entities.Training;
+using EmployeeSelfServiceAPI.Domain.Enums;
 using EmployeeSelfServiceAPI.Services.Interfaces;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -85,6 +87,84 @@ public class PdfService : IPdfService
                     column.Item().Row(row =>
                     {
                         row.RelativeItem().Text($"Generated {Timestamp(generatedAtUtc)}")
+                            .FontSize(8).FontColor(Colors.Grey.Darken1);
+                        row.RelativeItem().AlignRight().Text(text =>
+                        {
+                            text.DefaultTextStyle(x => x.FontSize(8).FontColor(Colors.Grey.Darken1));
+                            text.Span("Page ");
+                            text.CurrentPageNumber();
+                            text.Span(" of ");
+                            text.TotalPages();
+                        });
+                    });
+                });
+            });
+        }).GeneratePdf();
+    }
+
+    public byte[] GeneratePayslip(Payslip payslip, PayslipVersion version, DateTime generatedAtUtc)
+    {
+        var employee = payslip.Employee!;
+        var period = new DateOnly(payslip.Year, payslip.Month, 1).ToString("MMMM yyyy", Invariant);
+        var allowances = version.LineItems.Where(l => l.Type == PayslipLineType.Allowance).OrderBy(l => l.SortOrder).ToList();
+        var deductions = version.LineItems.Where(l => l.Type == PayslipLineType.Deduction).OrderBy(l => l.SortOrder).ToList();
+
+        return Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(40);
+                page.DefaultTextStyle(x => x.FontSize(10));
+
+                page.Header().Column(column =>
+                {
+                    column.Item().Text("Payslip").FontSize(18).Bold();
+                    column.Item().Text($"{period}  ·  Version {version.VersionNumber}"
+                                       + (version.Status == PayslipVersionStatus.Superseded ? "  ·  SUPERSEDED" : string.Empty))
+                        .FontColor(version.Status == PayslipVersionStatus.Superseded ? Colors.Red.Darken1 : Colors.Grey.Darken1);
+                    column.Item().PaddingTop(8).LineHorizontal(1).LineColor(Colors.Grey.Lighten1);
+                });
+
+                page.Content().PaddingVertical(15).Column(column =>
+                {
+                    column.Spacing(14);
+
+                    column.Item().Element(c => Section(c, "Employee",
+                    [
+                        ("Name", FullName(employee)),
+                        ("Employee number", employee.EmployeeNumber),
+                        ("Department", employee.Department?.Name ?? "-"),
+                        ("Payroll period", period)
+                    ]));
+
+                    var earnings = new List<(string, string)> { ("Basic salary", Money(version.Currency, version.BasicSalary)) };
+                    earnings.AddRange(allowances.Select(a => (a.Name, Money(version.Currency, a.Amount))));
+                    earnings.Add(("Gross pay", Money(version.Currency, version.GrossPay)));
+                    column.Item().Element(c => Section(c, "Earnings", earnings));
+
+                    var deductionRows = deductions.Select(d => (d.Name, Money(version.Currency, d.Amount))).ToList();
+                    deductionRows.Add(("Total deductions", Money(version.Currency, version.TotalDeductions)));
+                    column.Item().Element(c => Section(c, "Deductions", deductionRows));
+
+                    column.Item().Background(Colors.Grey.Lighten4).Padding(12).Row(row =>
+                    {
+                        row.RelativeItem().Text("Net pay").FontSize(13).SemiBold();
+                        row.RelativeItem().AlignRight().Text(Money(version.Currency, version.NetPay)).FontSize(13).Bold();
+                    });
+
+                    if (!string.IsNullOrWhiteSpace(version.RevisionReason))
+                        column.Item().Element(c => Section(c, "Revision", [("Reason", version.RevisionReason!)]));
+                });
+
+                page.Footer().Column(column =>
+                {
+                    column.Item().Text("Sample payroll data. This document is confidential to the named employee.")
+                        .FontSize(8).FontColor(Colors.Grey.Darken1);
+                    column.Item().Row(row =>
+                    {
+                        row.RelativeItem().Text(
+                                $"Published {(version.PublishedAt == null ? "-" : Timestamp(version.PublishedAt.Value))}  ·  Generated {Timestamp(generatedAtUtc)}")
                             .FontSize(8).FontColor(Colors.Grey.Darken1);
                         row.RelativeItem().AlignRight().Text(text =>
                         {

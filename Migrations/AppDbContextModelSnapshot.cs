@@ -907,9 +907,6 @@ namespace EmployeeSelfServiceAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("DepartmentAtApplyId")
-                        .HasColumnType("int");
-
                     b.Property<int>("DepartmentIdAtApply")
                         .HasColumnType("int");
 
@@ -917,9 +914,6 @@ namespace EmployeeSelfServiceAPI.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<int>("EmployeeId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("GradeAtApplyId")
                         .HasColumnType("int");
 
                     b.Property<int>("GradeIdAtApply")
@@ -950,11 +944,11 @@ namespace EmployeeSelfServiceAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DepartmentAtApplyId");
+                    b.HasIndex("DepartmentIdAtApply");
 
                     b.HasIndex("EmployeeId");
 
-                    b.HasIndex("GradeAtApplyId");
+                    b.HasIndex("GradeIdAtApply");
 
                     b.HasIndex("OpportunityId", "EmployeeId")
                         .IsUnique();
@@ -1938,8 +1932,9 @@ namespace EmployeeSelfServiceAPI.Migrations
                 {
                     b.HasOne("EmployeeSelfServiceAPI.Domain.Entities.Identity.Department", "DepartmentAtApply")
                         .WithMany()
-                        .HasForeignKey("DepartmentAtApplyId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("DepartmentIdAtApply")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("EmployeeSelfServiceAPI.Domain.Entities.Identity.Employee", "Employee")
                         .WithMany()
@@ -1949,8 +1944,9 @@ namespace EmployeeSelfServiceAPI.Migrations
 
                     b.HasOne("EmployeeSelfServiceAPI.Domain.Entities.Identity.Grade", "GradeAtApply")
                         .WithMany()
-                        .HasForeignKey("GradeAtApplyId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("GradeIdAtApply")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("EmployeeSelfServiceAPI.Domain.Entities.Opportunities.Opportunity", "Opportunity")
                         .WithMany("Applications")

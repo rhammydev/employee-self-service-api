@@ -18,4 +18,6 @@ public interface ITrainingRequestRepository
     Task<PagedResult<TrainingRequest>> GetPagedPendingManagerAsync(int? reviewerId, PagedRequest request);
 
     Task<PagedResult<TrainingRequest>> GetPagedByStatusesAsync(IReadOnlyCollection<TrainingStatus> statuses, PagedRequest request);
+
+    Task<PagedResult<TrainingRequest>> GetPagedEvidenceOverdueAsync(DateOnly endedBefore, PagedRequest request);
 }

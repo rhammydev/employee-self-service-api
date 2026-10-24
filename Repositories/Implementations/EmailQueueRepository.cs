@@ -1,5 +1,6 @@
 using EmployeeSelfServiceAPI.Data;
 using EmployeeSelfServiceAPI.Domain.Entities.Common;
+using EmployeeSelfServiceAPI.Domain.Enums;
 using EmployeeSelfServiceAPI.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,4 +32,17 @@ public class EmailQueueRepository(AppDbContext context) : IEmailQueueRepository
 
     public Task<EmailMessage?> GetByIdAsync(int id, CancellationToken cancellationToken) =>
         context.EmailMessages.FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
+
+    public async Task CancelPendingAsync(int employeeId, string subject, string reason)
+    {
+        var pending = await context.EmailMessages
+            .Where(m => m.EmployeeId == employeeId && m.Subject == subject && m.Status == EmailStatus.Pending)
+            .ToListAsync();
+
+        foreach (var message in pending)
+        {
+            message.Status = EmailStatus.Cancelled;
+            message.LastErrorMessage = reason;
+        }
+    }
 }

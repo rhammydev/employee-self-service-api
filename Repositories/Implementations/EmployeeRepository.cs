@@ -84,6 +84,9 @@ public class EmployeeRepository(AppDbContext context) : IEmployeeRepository
     public Task<List<Employee>> GetActiveByRoleAsync(UserRole role) =>
         context.Employees.Where(e => e.IsActive && e.Roles.Any(r => r.Role == role)).ToListAsync();
 
+    public Task<List<Employee>> GetByIdsAsync(IReadOnlyCollection<int> ids) =>
+        context.Employees.Where(e => ids.Contains(e.Id)).ToListAsync();
+
     public void RemoveRole(EmployeeRole role) => context.EmployeeRoles.Remove(role);
 
     private static IQueryable<Employee> WithDetails(IQueryable<Employee> query) =>

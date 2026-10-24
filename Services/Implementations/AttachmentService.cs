@@ -10,6 +10,8 @@ namespace EmployeeSelfServiceAPI.Services.Implementations;
 public class AttachmentService(
     IAttachmentRepository attachmentRepository,
     ITrainingRequestRepository trainingRequestRepository,
+    IKpiRepository kpiRepository,
+    IOpportunityRepository opportunityRepository,
     IFileStorageService fileStorageService): IAttachmentService
 {
     public async Task<(ApiResponse? Error, FileDownload? File)> DownloadAsync(int userId, IReadOnlyList<UserRole> roles, int attachmentId)
@@ -34,6 +36,14 @@ public class AttachmentService(
             AttachmentParentType.TrainingRequest or AttachmentParentType.TrainingEvidence =>
                 await trainingRequestRepository.GetDetailsAsync(attachment.ParentId) is { } request
                 && TrainingAccess.CanView(request, userId, roles),
+
+            AttachmentParentType.KpiItem =>
+                await kpiRepository.GetPlanByItemIdAsync(attachment.ParentId) is { } plan
+                && KpiAccess.CanView(plan, userId, roles),
+
+            AttachmentParentType.OpportunityApplication =>
+                await opportunityRepository.GetApplicationDetailsAsync(attachment.ParentId) is { } application
+                && (application.EmployeeId == userId || roles.Contains(UserRole.HR)),
 
             _ => false
         };

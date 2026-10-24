@@ -50,6 +50,12 @@ public class TrainingRequestRepository(AppDbContext context): ITrainingRequestRe
             .OrderBy(t => t.SubmittedAt)
             .ToPagedResultAsync(request);
 
+    public Task<PagedResult<TrainingRequest>> GetPagedEvidenceOverdueAsync(DateOnly endedBefore, PagedRequest request) =>
+        WithPeople()
+            .Where(t => t.Status == TrainingStatus.Approved && t.TrainingEndDate < endedBefore)
+            .OrderBy(t => t.TrainingEndDate)
+            .ToPagedResultAsync(request);
+
     public Task<PagedResult<TrainingRequest>> GetPagedByStatusesAsync(IReadOnlyCollection<TrainingStatus> statuses, PagedRequest request) =>
         WithPeople()
             .Where(t => statuses.Contains(t.Status))

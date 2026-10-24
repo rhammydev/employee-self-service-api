@@ -25,6 +25,18 @@ public static class ServiceExtensions
         services.AddScoped<ITrainingRequestService, TrainingRequestService>();
         services.AddScoped<ITrainingApprovalService, TrainingApprovalService>();
         services.AddSingleton<IPdfService, PdfService>();
+        services.AddScoped<ICourseService, CourseService>();
+        services.AddScoped<ICourseAssignmentService, CourseAssignmentService>();
+        services.AddScoped<IKpiPlanService, KpiPlanService>();
+        services.AddScoped<IKpiProgressService, KpiProgressService>();
+        services.AddScoped<IPayslipService, PayslipService>();
+        services.AddScoped<IOpportunityService, OpportunityService>();
+        services.AddScoped<IDashboardService, DashboardService>();
+
+        // Daily reminders (NOT-02)
+        services.Configure<ReminderSettings>(configuration.GetSection("Reminders"));
+        services.AddScoped<IReminderService, ReminderService>();
+        services.AddHostedService<ReminderWorker>();
 
         // Email queue: business code only queues; the worker sends
         services.Configure<SmtpMail>(configuration.GetSection("SmtpMail"));

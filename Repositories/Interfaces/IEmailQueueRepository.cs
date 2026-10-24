@@ -10,4 +10,6 @@ public interface IEmailQueueRepository
         CancellationToken cancellationToken);
 
     Task<EmailMessage?> GetByIdAsync(int id, CancellationToken cancellationToken);
+
+    Task CancelPendingAsync(int employeeId, string subject, string reason);
 }

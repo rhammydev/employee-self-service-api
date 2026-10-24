@@ -19,4 +19,10 @@ public class AttachmentRepository(AppDbContext context) : IAttachmentRepository
             .Where(a => a.ParentId == parentId && parentTypes.Contains(a.ParentType))
             .OrderBy(a => a.UploadedAt)
             .ToListAsync();
+
+    public Task<List<Attachment>> GetByParentIdsAsync(AttachmentParentType parentType, IReadOnlyCollection<int> parentIds) =>
+        context.Attachments.AsNoTracking()
+            .Where(a => a.ParentType == parentType && parentIds.Contains(a.ParentId))
+            .OrderBy(a => a.UploadedAt)
+            .ToListAsync();
 }

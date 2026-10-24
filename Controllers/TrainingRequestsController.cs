@@ -106,4 +106,31 @@ public class TrainingRequestsController(
 
         return File(file!.Content, file.ContentType, file.FileName);
     }
+
+    // Completion evidence
+    [HttpPost("{id:int}/evidence")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(6 * 1024 * 1024)]
+    public async Task<IActionResult> SubmitEvidence(int id, [FromForm] UploadFileRequest request) =>
+        Respond(await training.SubmitEvidenceAsync(User.GetEmployeeId(), id, request.File));
+
+    [Authorize(Roles = nameof(UserRole.HR))]
+    [HttpGet("evidence-pending")]
+    public async Task<IActionResult> GetPendingEvidence([FromQuery] PagedRequest request) =>
+        Respond(await approvals.GetPendingEvidenceAsync(request));
+
+    [Authorize(Roles = nameof(UserRole.HR))]
+    [HttpPost("{id:int}/evidence-review")]
+    public async Task<IActionResult> ReviewEvidence(int id, EvidenceReviewRequest request) =>
+        Respond(await approvals.ReviewEvidenceAsync(User.GetEmployeeId(), id, request));
+
+    [Authorize(Roles = nameof(UserRole.HR))]
+    [HttpGet("evidence-overdue")]
+    public async Task<IActionResult> GetEvidenceOverdue([FromQuery] PagedRequest request) =>
+        Respond(await approvals.GetEvidenceOverdueAsync(request));
+
+    [Authorize(Roles = nameof(UserRole.HR))]
+    [HttpPost("{id:int}/close-no-evidence")]
+    public async Task<IActionResult> CloseNoEvidence(int id, ReasonRequest request) =>
+        Respond(await approvals.CloseNoEvidenceAsync(User.GetEmployeeId(), id, request));
 }

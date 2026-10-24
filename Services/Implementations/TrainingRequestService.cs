@@ -22,6 +22,8 @@ public class TrainingRequestService(
     IUnitOfWork unitOfWork,
     IAppClock clock):ITrainingRequestService
 {
+    private const string NotFoundMessage = "Training request not found.";
+
     private static readonly TrainingStatus[] WithdrawableStatuses =
     [
         TrainingStatus.Draft, TrainingStatus.PendingManagerApproval, TrainingStatus.PendingHRApproval,
@@ -115,11 +117,59 @@ public class TrainingRequestService(
         return ApiResponse.Success("Training request submitted for manager approval.");
     }
 
+    public async Task<ApiResponse> SubmitEvidenceAsync(int employeeId, int id, IFormFile file)
+    {
+        var training = await trainingRequestRepository.GetForUpdateAsync(id);
+        if (training == null)
+            return ApiResponse.NotFound(NotFoundMessage);
+        if (training.EmployeeId != employeeId)
+            return ApiResponse.Forbidden("Only the owner can submit completion evidence.");
+
+        if (training.Status != TrainingStatus.Approved)
+            return ApiResponse.Conflict("Completion evidence can only be submitted for approved requests.");
+        if (clock.Today <= training.TrainingEndDate)
+            return ApiResponse.Conflict(
+                $"Completion evidence can be submitted after the training ends on {training.TrainingEndDate:yyyy-MM-dd}.");
+
+        var (fileType, fileError) = await fileStorageService.ValidateAsync(file, FileTypes.Documents);
+        if (fileError != null)
+            return ApiResponse.Fail(fileError, 400, ResponseCodes.BadRequest, [new ApiError("file", fileError)]);
+
+        await attachmentRepository.AddAsync(new Attachment
+        {
+            ParentType = AttachmentParentType.TrainingEvidence,
+            ParentId = id,
+            OriginalFileName = Path.GetFileName(file.FileName),
+            StoredFileName = await fileStorageService.SaveAsync(file, fileType!),
+            ContentType = fileType!.ContentType,
+            SizeBytes = file.Length,
+            UploadedById = employeeId,
+            UploadedAt = clock.UtcNow
+        });
+
+        var from = training.Status;
+        training.Status = TrainingStatus.EvidenceSubmitted;
+        training.UpdatedAt = clock.UtcNow;
+        AddHistory(training, TrainingAction.EvidenceSubmitted, from, employeeId, Path.GetFileName(file.FileName));
+
+        foreach (var hr in await employeeRepository.GetActiveByRoleAsync(UserRole.HR))
+        {
+            if (hr.Id == training.EmployeeId) continue;
+            await notificationService.NotifyAsync(hr, "Completion evidence awaiting review",
+                $"{FullName(training.Employee!)} submitted completion evidence for {training.Reference} ({training.Title}).",
+                relatedEntity: nameof(TrainingRequest), relatedEntityId: training.Id);
+        }
+
+        await unitOfWork.SaveChangesAsync();
+
+        return ApiResponse.Success("Completion evidence submitted for HR review.");
+    }
+
     public async Task<ApiResponse> WithdrawAsync(int employeeId, int id, ReasonRequest request)
     {
         var training = await trainingRequestRepository.GetForUpdateAsync(id);
         if (training == null)
-            return ApiResponse.NotFound("Training request not found.");
+            return ApiResponse.NotFound(NotFoundMessage);
         if (training.EmployeeId != employeeId)
             return ApiResponse.Forbidden("Only the owner can withdraw this request.");
         if (!WithdrawableStatuses.Contains(training.Status))
@@ -147,7 +197,7 @@ public class TrainingRequestService(
     {
         var training = await trainingRequestRepository.GetForUpdateAsync(id);
         if (training == null)
-            return ApiResponse.NotFound("Training request not found.");
+            return ApiResponse.NotFound(NotFoundMessage);
 
         if (training.AssignedReviewerId != managerId || training.EmployeeId == managerId)
             return ApiResponse.Forbidden("This request is not assigned to you.");
@@ -187,7 +237,7 @@ public class TrainingRequestService(
     {
         var training = await trainingRequestRepository.GetForUpdateAsync(id);
         if (training == null)
-            return ApiResponse.NotFound("Training request not found.");
+            return ApiResponse.NotFound(NotFoundMessage);
         if (training.Status != TrainingStatus.PendingManagerApproval)
             return ApiResponse.Conflict("Only requests pending manager approval can be reassigned.");   
         if (request.NewReviewerId == training.EmployeeId)
@@ -225,7 +275,7 @@ public class TrainingRequestService(
     {
         var training = await trainingRequestRepository.GetDetailsAsync(id);
         if (training == null)
-            return ApiResponse.NotFound("Training request not found.");
+            return ApiResponse.NotFound(NotFoundMessage);
         if (!TrainingAccess.CanView(training, userId, roles))
             return ApiResponse.Forbidden("You do not have access to this training request.");
 
@@ -252,7 +302,7 @@ public class TrainingRequestService(
     private static ApiResponse? CheckOwnedDraft(TrainingRequest? training, int employeeId, string verb)
     {
         if (training == null)
-            return ApiResponse.NotFound("Training request not found.");
+            return ApiResponse.NotFound(NotFoundMessage);
         if (training.EmployeeId != employeeId)
             return ApiResponse.Forbidden("Only the owner can change this request.");
         if (training.Status != TrainingStatus.Draft)

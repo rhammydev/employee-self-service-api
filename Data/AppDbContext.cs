@@ -270,9 +270,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<OpportunityAllowedGrade>()
             .HasKey(x => new { x.OpportunityId, x.GradeId });
 
-        modelBuilder.Entity<OpportunityApplication>()
-            .HasIndex(x => new { x.OpportunityId, x.EmployeeId })
-            .IsUnique();
+        modelBuilder.Entity<OpportunityApplication>(e =>
+        {
+            e.HasIndex(x => new { x.OpportunityId, x.EmployeeId }).IsUnique();
+            e.HasOne(x => x.DepartmentAtApply).WithMany().HasForeignKey(x => x.DepartmentIdAtApply);
+            e.HasOne(x => x.GradeAtApply).WithMany().HasForeignKey(x => x.GradeIdAtApply);
+        });
     }
 
     private static void ApplyConventions(ModelBuilder modelBuilder)

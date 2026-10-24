@@ -86,3 +86,12 @@ public class AllowanceCorrectionRequestValidator : AbstractValidator<AllowanceCo
         RuleFor(x => x.Reason).NotEmpty().WithMessage("A reason is required for a correction.").MaximumLength(1000);
     }
 }
+public class EvidenceReviewRequestValidator : AbstractValidator<EvidenceReviewRequest>
+{
+    public EvidenceReviewRequestValidator()
+    {
+        RuleFor(x => x.Comment).NotEmpty().When(x => !x.Accept)
+            .WithMessage("A comment is required when returning evidence.");
+        RuleFor(x => x.Comment).MaximumLength(1000);
+    }
+}

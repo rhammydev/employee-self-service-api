@@ -10,6 +10,7 @@ public interface ITrainingRequestService
     Task<ApiResponse> UpdateAsync(int employeeId, int id, SaveTrainingRequest request);
     Task<ApiResponse> UploadSupportingFileAsync(int employeeId, int id, IFormFile file);
     Task<ApiResponse> SubmitAsync(int employeeId, int id);
+    Task<ApiResponse> SubmitEvidenceAsync(int employeeId, int id, IFormFile file);
     Task<ApiResponse> WithdrawAsync(int employeeId, int id, ReasonRequest request);
     Task<ApiResponse> ManagerDecisionAsync(int managerId, int id, ManagerDecisionRequest request);
     Task<ApiResponse> ReassignReviewerAsync(int adminId, int id, ReassignReviewerRequest request);

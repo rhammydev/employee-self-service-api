@@ -17,6 +17,13 @@ public static class RepositoryExtensions
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
         services.AddScoped<ITrainingRequestRepository, TrainingRequestRepository>();
         services.AddScoped<IEstacodeRateRepository, EstacodeRateRepository>();
+        services.AddScoped<ICourseRepository, CourseRepository>();
+        services.AddScoped<ICourseAssignmentRepository, CourseAssignmentRepository>();
+        services.AddScoped<IKpiRepository, KpiRepository>();
+        services.AddScoped<IPayslipRepository, PayslipRepository>();
+        services.AddScoped<IOpportunityRepository, OpportunityRepository>();
+        services.AddScoped<IReminderRepository, ReminderRepository>();
+        services.AddScoped<IDashboardRepository, DashboardRepository>();
 
         return services;
     }

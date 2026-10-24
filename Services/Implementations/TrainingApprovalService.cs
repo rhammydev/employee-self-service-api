@@ -20,8 +20,8 @@ public class TrainingApprovalService(
     IAppClock clock) : ITrainingApprovalService
 {
     private const string NotFoundMessage = "Training request not found.";
+    private const int EvidenceFollowUpDays = 60;   
 
-    // HR's queue: new requests to confirm, and allowances Finance sent back
     private static readonly TrainingStatus[] HrQueueStatuses =
         [TrainingStatus.PendingHRApproval, TrainingStatus.ReturnedToHR];
 
@@ -139,6 +139,9 @@ public class TrainingApprovalService(
 
         await NotifyRoleAsync(UserRole.Finance, training, "Corrected allowance awaiting Finance approval",
             $"HR submitted allowance version {allowance.VersionNumber} for {training.Reference}: {Money(allowance.Currency, allowance.Amount)}.");
+        await notificationService.NotifyAsync(training.Employee!, "Your training allowance was corrected",
+            $"HR revised the allowance for {training.Reference} to {Money(allowance.Currency, allowance.Amount)} (version {allowance.VersionNumber}). It is back with Finance for approval.",
+            relatedEntity: nameof(TrainingRequest), relatedEntityId: training.Id);
 
         await unitOfWork.SaveChangesAsync();
 
@@ -193,6 +196,9 @@ public class TrainingApprovalService(
                 AddHistory(training, TrainingAction.FinanceReturnedToHR, from, financeId, reason);
                 await NotifyRoleAsync(UserRole.HR, training, "Allowance returned by Finance",
                     $"Finance returned allowance version {current.VersionNumber} for {training.Reference}. Reason: {reason}");
+                await notificationService.NotifyAsync(training.Employee!, "Your training allowance is being reviewed",
+                    $"Finance sent the allowance for {training.Reference} back to HR for correction. You will be notified when it is resubmitted.",
+                    relatedEntity: nameof(TrainingRequest), relatedEntityId: training.Id);
                 break;
         }
 
@@ -224,6 +230,73 @@ public class TrainingApprovalService(
         return (null, new FileDownload(new MemoryStream(pdf), "application/pdf",
             $"{training.Reference}-allowance-v{approved.VersionNumber}.pdf"));
     }
+
+
+    public async Task<ApiResponse> GetPendingEvidenceAsync(PagedRequest request) =>
+        ApiResponse.Paged("Evidence awaiting review retrieved.",
+            ToSummaries(await trainingRequestRepository.GetPagedByStatusesAsync([TrainingStatus.EvidenceSubmitted], request)));
+
+    public async Task<ApiResponse> GetEvidenceOverdueAsync(PagedRequest request) =>
+        ApiResponse.Paged("Approved requests with no evidence after the follow-up period retrieved.",
+            ToSummaries(await trainingRequestRepository.GetPagedEvidenceOverdueAsync(EvidenceOverdueCutoff(), request)));
+
+    public async Task<ApiResponse> ReviewEvidenceAsync(int hrId, int id, EvidenceReviewRequest request)
+    {
+        var training = await trainingRequestRepository.GetForUpdateAsync(id);
+        if (training == null)
+            return ApiResponse.NotFound(NotFoundMessage);
+        if (training.EmployeeId == hrId)
+            return ApiResponse.Forbidden("You cannot review evidence for your own training request.");
+        if (training.Status != TrainingStatus.EvidenceSubmitted)
+            return ApiResponse.Conflict("This request has no completion evidence awaiting review.");
+
+        var from = training.Status;
+        var comment = request.Comment?.Trim();
+
+        training.Status = request.Accept ? TrainingStatus.Completed : TrainingStatus.Approved;
+        training.UpdatedAt = clock.UtcNow;
+        AddHistory(training, request.Accept ? TrainingAction.EvidenceAccepted : TrainingAction.EvidenceReturned,
+            from, hrId, comment);
+
+        await notificationService.NotifyAsync(training.Employee!,
+            request.Accept ? "Training completed" : "Completion evidence returned",
+            request.Accept
+                ? $"HR accepted your completion evidence. {training.Reference} ({training.Title}) is now complete."
+                : $"HR returned your completion evidence for {training.Reference}. Please resubmit. Comment: {comment}",
+            relatedEntity: nameof(TrainingRequest), relatedEntityId: training.Id);
+        await unitOfWork.SaveChangesAsync();
+
+        return ApiResponse.Success(request.Accept
+            ? "Evidence accepted. The training request is complete."
+            : "Evidence returned to the employee.");
+    }
+
+    public async Task<ApiResponse> CloseNoEvidenceAsync(int hrId, int id, ReasonRequest request)
+    {
+        var training = await trainingRequestRepository.GetForUpdateAsync(id);
+        if (training == null)
+            return ApiResponse.NotFound(NotFoundMessage);
+        if (training.EmployeeId == hrId)
+            return ApiResponse.Forbidden("You cannot close your own training request.");
+
+        if (training.Status != TrainingStatus.Approved || training.TrainingEndDate >= EvidenceOverdueCutoff())
+            return ApiResponse.Conflict(
+                $"Only approved requests with no evidence {EvidenceFollowUpDays} days after the training end date can be closed.");
+
+        var from = training.Status;
+        training.Status = TrainingStatus.RejectedNoEvidence;
+        training.UpdatedAt = clock.UtcNow;
+        AddHistory(training, TrainingAction.ClosedNoEvidence, from, hrId, request.Reason.Trim());
+
+        await notificationService.NotifyAsync(training.Employee!, "Training request closed",
+            $"{training.Reference} was closed because no completion evidence was received. Reason: {request.Reason.Trim()}",
+            relatedEntity: nameof(TrainingRequest), relatedEntityId: training.Id);
+        await unitOfWork.SaveChangesAsync();
+
+        return ApiResponse.Success("Training request closed as Rejected-No-Evidence.");
+    }
+
+    private DateOnly EvidenceOverdueCutoff() => clock.Today.AddDays(-EvidenceFollowUpDays);
 
     // ---- helpers ----
 

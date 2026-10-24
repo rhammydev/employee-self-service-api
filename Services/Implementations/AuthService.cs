@@ -21,13 +21,17 @@ public class AuthService(
     IAccountTokenRepository accountTokenRepository,
     IAuditLogRepository auditLogRepository,
     INotificationService notificationService,
+    IEmailQueueRepository emailQueueRepository,
     IUnitOfWork unitOfWork,
     IOptions<JwtSettings> jwtOptions,
     IOptions<AuthSettings> authOptions,
     ILogger<AuthService> logger) : IAuthService
 {
     private const string InvalidLoginMessage = "Invalid email or password.";
-    
+
+    private const string SetupEmailTitle = "Set up your account";
+    private const string ResetEmailTitle = "Password reset requested";
+
     private readonly JwtSettings _jwtSettings = jwtOptions.Value;
     private readonly AuthSettings _authSettings = authOptions.Value;
     
@@ -104,7 +108,7 @@ public class AuthService(
                 TimeSpan.FromMinutes(_authSettings.ResetTokenExpiryMinutes));
             
             var link = $"{_authSettings.ClientBaseUrl}/reset-password?token={token}";
-            await notificationService.NotifyAsync(employee, "Password reset requested",
+            await notificationService.NotifyAsync(employee, ResetEmailTitle,
                 "A password reset was requested for your account. Check your email for the link.",
                 emailBody: MailUtils.PasswordReset(employee.FirstName, link, token, _authSettings.ResetTokenExpiryMinutes));
             await AuditAsync(employee.Id, "PasswordResetRequested");
@@ -161,7 +165,7 @@ public class AuthService(
             TimeSpan.FromHours(_authSettings.SetupTokenExpiryHours));
         
         var link = $"{_authSettings.ClientBaseUrl}/setup-password?token={token}";
-        await notificationService.NotifyAsync(employee, "Set up your account",
+        await notificationService.NotifyAsync(employee, SetupEmailTitle,
             "Your Employee Self-Service account was created. Check your email to set your password.",
             emailBody: MailUtils.AccountSetup(employee.FirstName, employee.EmployeeNumber, link, token,
                 _authSettings.SetupTokenExpiryHours));
@@ -170,7 +174,14 @@ public class AuthService(
     private async Task<string> IssueTokenAsync(Employee employee, TokenPurpose purpose, TimeSpan lifetime)
     {
         if (employee.Id != 0)
+        {
             await accountTokenRepository.InvalidateActiveAsync(employee.Id, purpose);
+
+            // The old link is dead now, so an older email still waiting in the queue must not go out
+            await emailQueueRepository.CancelPendingAsync(employee.Id,
+                purpose == TokenPurpose.AccountSetup ? SetupEmailTitle : ResetEmailTitle,
+                "Cancelled: a newer link was issued before this email was sent.");
+        }
 
         var token = TokenHelper.GenerateToken();
         await accountTokenRepository.AddAsync(new AccountToken

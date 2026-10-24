@@ -8,5 +8,5 @@ public class AppClock : IAppClock
     public DateOnly Today => ToAppDate(UtcNow);
     
     public DateOnly ToAppDate(DateTime utc) =>
-        DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeToUtc(utc, AppTimeZone));
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utc, AppTimeZone));
 }
