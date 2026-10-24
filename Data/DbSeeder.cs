@@ -11,8 +11,16 @@ public class DbSeeder
 
     public static async Task SeedAsync(AppDbContext dbContext)
     {
-        if (await dbContext.Employees.AnyAsync()) return;
-        
+        // Accounts and rates only on an empty database; module demo data checks its own markers,
+        // so it is also added to a database that already has accounts
+        if (!await dbContext.Employees.AnyAsync())
+            await SeedAccountsAsync(dbContext);
+
+        await DemoDataSeeder.SeedAsync(dbContext);
+    }
+
+    private static async Task SeedAccountsAsync(AppDbContext dbContext)
+    {
         var now =  DateTime.UtcNow;
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(DemoPassword);
         
