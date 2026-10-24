@@ -1,8 +1,10 @@
 using EmployeeSelfServiceAPI.Domain.Entities.Common;
 using EmployeeSelfServiceAPI.Domain.Entities.Identity;
+using EmployeeSelfServiceAPI.Domain.Entities.Training;
 using EmployeeSelfServiceAPI.Domain.Enums;
 using EmployeeSelfServiceAPI.Repositories.Interfaces;
 using EmployeeSelfServiceAPI.Services.Interfaces;
+using EmployeeSelfServiceAPI.Utilities;
 
 namespace EmployeeSelfServiceAPI.Services.Implementations;
 
@@ -28,10 +30,17 @@ public class NotificationService(INotificationRepository notificationRepository,
             Employee = recipient,
             Recipient = recipient.Email,
             Subject = title,
-            Body = emailBody ?? message,
+            Body = emailBody ?? MailUtils.Notification(recipient.FirstName, title, message, EyebrowFor(relatedEntity)),
             Status = EmailStatus.Pending,
             NextAttemptAt =  now,
             CreatedAt = now,
         });
     }
+
+    private static string EyebrowFor(string? relatedEntity) => relatedEntity switch
+    {
+        nameof(TrainingRequest) => "Training request",
+        null => "Account",
+        _ => "Notification"
+    };
 }

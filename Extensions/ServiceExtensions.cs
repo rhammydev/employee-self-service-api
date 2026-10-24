@@ -2,6 +2,7 @@ using EmployeeSelfServiceAPI.Domain.Settings;
 using EmployeeSelfServiceAPI.Helpers;
 using EmployeeSelfServiceAPI.Services.Implementations;
 using EmployeeSelfServiceAPI.Services.Interfaces;
+using EmployeeSelfServiceAPI.Workers;
 
 namespace EmployeeSelfServiceAPI.Extensions;
 
@@ -24,7 +25,14 @@ public static class ServiceExtensions
         services.AddScoped<ITrainingRequestService, TrainingRequestService>();
         services.AddScoped<ITrainingApprovalService, TrainingApprovalService>();
         services.AddSingleton<IPdfService, PdfService>();
-        
+
+        // Email queue: business code only queues; the worker sends
+        services.Configure<SmtpMail>(configuration.GetSection("SmtpMail"));
+        services.Configure<EmailQueueSettings>(configuration.GetSection("EmailQueue"));
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<IEmailDispatcher, EmailDispatcher>();
+        services.AddHostedService<EmailQueueWorker>();
+
         return services;
     }
 }

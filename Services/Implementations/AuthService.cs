@@ -10,6 +10,7 @@ using EmployeeSelfServiceAPI.DTOs.Generic;
 using EmployeeSelfServiceAPI.Helpers;
 using EmployeeSelfServiceAPI.Repositories.Interfaces;
 using EmployeeSelfServiceAPI.Services.Interfaces;
+using EmployeeSelfServiceAPI.Utilities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -105,12 +106,7 @@ public class AuthService(
             var link = $"{_authSettings.ClientBaseUrl}/reset-password?token={token}";
             await notificationService.NotifyAsync(employee, "Password reset requested",
                 "A password reset was requested for your account. Check your email for the link.",
-                emailBody:
-                $"Hello {employee.FirstName},\n\n" +
-                $"Use this link to reset your password: {link}\n" +
-                $"Or paste this token into the reset-password endpoint: {token}\n\n" +
-                $"It expires in {_authSettings.ResetTokenExpiryMinutes} minutes and works once. " +
-                "If you did not request this, ignore this email.");
+                emailBody: MailUtils.PasswordReset(employee.FirstName, link, token, _authSettings.ResetTokenExpiryMinutes));
             await AuditAsync(employee.Id, "PasswordResetRequested");
             await unitOfWork.SaveChangesAsync();
         }
@@ -145,7 +141,7 @@ public class AuthService(
         var employee = await employeeRepository.GetByIdAsync(employeeId);
         if(employee == null) return ApiResponse.NotFound("Employee not found");
         
-        if (employee.PasswordHash == null || !BCrypt.Net.BCrypt.Verify(request.NewPassword, employee.PasswordHash))
+        if (employee.PasswordHash == null || !BCrypt.Net.BCrypt.Verify(request.CurrentPassword, employee.PasswordHash))
             return ApiResponse.Fail("Current password is incorrect", 400);
         
         employee.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
@@ -167,11 +163,8 @@ public class AuthService(
         var link = $"{_authSettings.ClientBaseUrl}/setup-password?token={token}";
         await notificationService.NotifyAsync(employee, "Set up your account",
             "Your Employee Self-Service account was created. Check your email to set your password.",
-            emailBody:
-            $"Hello {employee.FirstName},\n\n" +
-            $"Your account ({employee.EmployeeNumber}) has been created. Set your password here: {link}\n" +
-            $"Or paste this token into the setup-password endpoint: {token}\n\n" +
-            $"This link expires in {_authSettings.SetupTokenExpiryHours} hours and works once.");
+            emailBody: MailUtils.AccountSetup(employee.FirstName, employee.EmployeeNumber, link, token,
+                _authSettings.SetupTokenExpiryHours));
     }
     
     private async Task<string> IssueTokenAsync(Employee employee, TokenPurpose purpose, TimeSpan lifetime)

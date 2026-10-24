@@ -8,7 +8,7 @@ public interface INotificationService
         Employee recipient,
         string title,
         string message,
-        string? emailBody = null,
+        string? emailBody = null,          // HTML from MailUtils; null = MailUtils.Notification(message)
         string? relatedEntity = null,
         int? relatedEntityId = null
     );
